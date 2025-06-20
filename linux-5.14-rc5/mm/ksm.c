@@ -38,6 +38,8 @@
 #include <linux/freezer.h>
 #include <linux/oom.h>
 #include <linux/numa.h>
+#include <linux/swap_stats.h>
+#include <linux/hermit.h>
 
 #include <asm/tlbflush.h>
 #include "internal.h"
@@ -2599,6 +2601,8 @@ struct page *hermit_ksm_might_need_to_copy(struct page *page,
 					   struct vm_area_struct *vma,
 					   unsigned long address, int cpu)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct anon_vma *anon_vma = page_anon_vma(page);
 	struct page *new_page;
 
@@ -2631,6 +2635,11 @@ struct page *hermit_ksm_might_need_to_copy(struct page *page,
 		SetPageDirty(new_page);
 		__SetPageUptodate(new_page);
 		__SetPageLocked(new_page);
+	}
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_ksm_might_need_to_copy, (uint64_t)(ftt_end - ftt_start));
 	}
 
 	return new_page;

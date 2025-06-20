@@ -59,6 +59,43 @@ static struct kmem_cache *vpage_cachep;
 /** For Hermit prefetch */
 DEFINE_PER_CPU(struct pref_request_queue, pref_request_queue);
 
+static void reset_vaddr_buf(void)
+{
+	// memset(vaddr_buf, 0, sizeof(unsigned long) * 4 * VADDR_BUF_LEN);
+	// atomic_set(&vaddr_cnt, 0);
+	pr_info("vaddr_bufis being reset\n");
+
+	if (vaddr_buf == NULL) {
+		pr_err("vaddr_buf is NULL\n");
+		return;
+	}
+	else
+		pr_info("vaddr_buf is at %p\n", (void *)vaddr_buf);
+	size_t i;
+	for (i = 0; i < VADDR_BUF_LEN; i++)
+	{
+		vaddr_buf[i * 4 + 0] = 0; // task_pid_vnr(task);
+		vaddr_buf[i * 4 + 1] = 0;
+		
+		vaddr_buf[i * 4 + 2] = 0;
+		vaddr_buf[i * 4 + 3] = 0;
+	
+	}
+	
+	
+}
+
+static ssize_t vaddr_reset_write(struct file *file, const char __user *buf,
+				 size_t count, loff_t *ppos)
+{
+	reset_vaddr_buf();
+	return VADDR_BUF_LEN;
+}
+
+static const struct file_operations vaddr_reset_fops = {
+	.write = vaddr_reset_write,
+};
+
 /*
  * initialization
  */
@@ -85,6 +122,8 @@ static inline void hermit_debugfs_init(void)
 
 	debugfs_create_atomic_t("vaddr_cnt", 0666, root, &vaddr_cnt);
 	debugfs_create_blob("vaddr_list", 0666, root, &vaddr_blob);
+
+	debugfs_create_file("vaddr_reset", 0666, root, NULL, &vaddr_reset_fops);
 
 	debugfs_create_atomic_t("spf_cnt", 0666, root, &spf_cnt);
 	atomic_set(&spf_cnt, 0);
@@ -183,9 +222,24 @@ void free_vpages(struct list_head *vpage_list)
 	// INIT_LIST_HEAD(vpage_list);
 }
 
-static inline void hmt_record_vaddr(struct task_struct *task,
+// static inline 
+/*
+* func: 
+* 0: do_anonymous_page; allocate new one which might result in swap out of other pages
+* 1: do_swap_page_profiling: page is in swap cache and 
+* 2: do_swap_page_profiling: page is in remote and fetched on demand
+* 3: hermit_vma_prefetch: page is prefetched to swap cache added to lru and swap_cache
+* 4: hermit_swapin_bypass_swapcache - hermit_issue_read: page is brought on demand
+* 5: hermit_swap_vma_readahead: page is brought on demand
+* 7: read_swap_cache_async: page is brought on demand
+* 8: hermit_swap_cluster_readahead: page is brought on demand
+* 9: __read_swap_cache_speculative: page is brought on demand
+* 6: shrink_page_list_inner: page is probably sent to swap cache
+*/
+void hmt_record_vaddr(struct task_struct *task,
 				    struct vm_area_struct *vma,
-				    unsigned long addr)
+				    unsigned long addr,
+					unsigned long func_num)
 {
 #ifdef HERMIT_DBG_PF_TRACE
 	int cnt;
@@ -194,10 +248,20 @@ static inline void hmt_record_vaddr(struct task_struct *task,
 		// cnt %= VADDR_BUF_LEN;
 		if (cnt >= VADDR_BUF_LEN)
 			return;
-		vaddr_buf[cnt * 4 + 0] = task_pid_vnr(task);
+		if(vaddr_buf == NULL){
+			pr_err("vaddr_buf is NULL\n");
+			return;
+		}
+		vaddr_buf[cnt * 4 + 0] = (unsigned long) func_num; // task_pid_vnr(task);
 		vaddr_buf[cnt * 4 + 1] = addr;
-		vaddr_buf[cnt * 4 + 2] = vma->vm_start;
-		vaddr_buf[cnt * 4 + 3] = vma->vm_end - vma->vm_start;
+		if(vma != NULL){
+			vaddr_buf[cnt * 4 + 2] = vma->vm_start;
+			vaddr_buf[cnt * 4 + 3] = vma->vm_end - vma->vm_start;
+		}
+		else{
+			vaddr_buf[cnt * 4 + 2] = 0;
+			vaddr_buf[cnt * 4 + 3] = 0;
+		}
 	}
 #endif // HERMIT_DBG_PF_TRACE
 }

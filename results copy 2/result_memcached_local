@@ -1,0 +1,93 @@
+# Memcached results for local case:
+# first case: 100% local memory:
+Runtime	            3:29.67 (≈210 seconds)	Shorter than your previous ~5 min run, likely same ops with more throughput
+Throughput	        244,701 ops/sec	🚀 ↑    Faster than the earlier 167K — impressive
+Reads	            ~25M	                Balanced with writes
+Updates (writes)	~25M	                1:1 mix of reads and writes (expected from workloada)
+
+                #   Avg      95th     99th     Comment
+READ	            46μs	 58 μs	  70 μs	Excellent for Memcached in-memory reads
+WRITE	            46.3μs	 58 μs	  72 μs	Slightly higher as expected due to memory allocation
+Max Latency	Up to   ~46 ms			        Tail latencies show some rare slow ops
+
+; ----------------------------------------------------------------------------------
+; Local memory of 75%, 25% remote memory, 
+RunTime	            3:29.37 (≈209 seconds)	               
+Throughput	        245,282 ops/sec	             
+Reads	            ~25.00 million	            Balanced  
+Updates (writes)	~25.00 million	            	           
+GC Time (JVM)	        
+
+                #   Avg      95th     99th     Comment
+READ	            45.0μs	 55μs	  65μs	   
+WRITE	            46.3μs	 58μs	  71μs	   
+Max Latency	Up to   ~57 ms	
+
+# result ./syscalls 1
+On-demand Swap-ins: 247
+Prefetch Swap-ins: 134
+Hits on Prefetch: 136
+
+; ----------------------------------------------------------------------------------
+; Local memory of 50%, 50% remote memory, 
+RunTime	            3:25.73 (≈205 seconds)	    Good length — long enough to reflect realistic memory pressure 	            
+Throughput	            
+Reads	            ~25.00 million	            Balanced workload, sustained read pressure      
+Updates (writes)	~25.00 million	            Good load on slab allocator, memory usage patterns triggered	           
+GC Time (JVM)	    301 ms total (0.10%)	    Negligible — JVM GC is not a bottleneck     
+
+                #   Avg      95th     99th     Comment
+READ	            44.1μs	 55μs	  67μs	   Good for Memcached in-memory reads
+WRITE	            46.3μs	 59μs	  73μs	   Slightly higher as expected due to memory allocation
+Max Latency	Up to   ~70 ms	
+
+On-demand Swap-ins: 565888
+Prefetch Swap-ins: 235
+Hits on Prefetch: 225
+
+; ----------------------------------------------------------------------------------
+; Local memory of 40%, 60% remote memory, 
+RunTime	            3:25.73 (≈205 seconds)	    Good length — long enough to reflect realistic memory pressure 	            
+Throughput	            
+Reads	            ~25.00 million	            Balanced workload, sustained read pressure      
+Updates (writes)	~25.00 million	            Good load on slab allocator, memory usage patterns triggered	           
+GC Time (JVM)	    301 ms total (0.10%)	    Negligible — JVM GC is not a bottleneck     
+
+                #   Avg      95th     99th     Comment
+READ	            44.1μs	 55μs	  67μs	   Good for Memcached in-memory reads
+WRITE	            46.3μs	 59μs	  73μs	   Slightly higher as expected due to memory allocation
+Max Latency	Up to   ~70 ms	
+
+On-demand Swap-ins: 565888
+Prefetch Swap-ins: 235
+Hits on Prefetch: 225
+
+; ----------------------------------------------------------------------------------
+; Local memory of 25%, 75% remote memory, 
+RunTime	            3:56.92 (≈236 seconds)	    Good length — long enough to reflect realistic memory pressure	            
+Throughput	        215,963  ops/sec	        High throughput — Memcached handles >200k ops/s under pressure          
+Reads	            ~25.00 million	            Balanced workload, sustained read pressure	           
+Updates (writes)	~25.00 million	            Good load on slab allocator, memory usage patterns triggered	           
+GC Time (JVM)	    315 ms total (0.10%)	    Negligible — JVM GC is not a bottleneck 	      
+
+                #   Avg      95th     99th     Comment
+READ	            50.0μs	 70μs	  95μs	   Good for Memcached in-memory reads
+WRITE	            56.6μs	 86μs	  117μs	   Slightly higher as expected due to memory allocation
+Max Latency	Up to   ~114 ms	
+
+On-demand Swap-ins: 16029855
+Prefetch Swap-ins: 26961
+Hits on Prefetch: 10002
+
+; ----------------------------------------------------------------------------------
+; Local memory of 12%, 88% remote memory, 
+RunTime	            5:04.74 (≈300s)	            Good length — long enough to reflect realistic memory pressure
+Throughput	        167,037 ops/sec	            High throughput — Memcached handles >160k ops/s under pressure
+Reads	            24.99 million	            Balanced workload, sustained read pressure
+Updates (writes)	25.00 million	            Good load on slab allocator, memory usage patterns triggered
+GC Time (JVM)	    389 ms total (0.13%)	    Negligible — JVM GC is not a bottleneck
+
+                #   Avg      95th     99th     Comment
+READ	            56.4μs	 90 μs	  130 μs	Excellent for Memcached in-memory reads
+WRITE	            81.8μs	 160 μs	  255 μs	Slightly higher as expected due to memory allocation
+Max Latency	Up to   ~70 ms			            Tail latencies show some rare slow ops

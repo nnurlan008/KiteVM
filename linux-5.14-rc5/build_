@@ -1,0 +1,4 @@
+Do the action build
+Running on Ubuntu...
+make oldconfig
+make -j32

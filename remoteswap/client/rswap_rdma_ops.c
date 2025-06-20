@@ -1,7 +1,95 @@
 #include <linux/swap_stats.h>
 #include <linux/hermit.h>
+#include <linux/relay.h>
+
 
 #include "rswap_rdma.h"
+
+unsigned long *rdma_log_buf;
+atomic_t rdma_log_cnt;
+
+static void reset_rdma_log_buf(void)
+{
+	// memset(vaddr_buf, 0, sizeof(unsigned long) * 4 * VADDR_BUF_LEN);
+	// atomic_set(&vaddr_cnt, 0);
+	pr_info("rdma_log_buf is being reset\n");
+
+	if (rdma_log_buf == NULL) {
+		pr_err("rdma_log_buf is NULL\n");
+		return;
+	}
+	else
+		pr_info("rdma_log_buf is at %p\n", (void *)rdma_log_buf);
+	size_t i;
+	for (i = 0; i < MAX_LOG_ENTRIES; i++)
+	{
+		rdma_log_buf[i * 4 + 0] = 0; // task_pid_vnr(task);
+		rdma_log_buf[i * 4 + 1] = 0;
+		
+		rdma_log_buf[i * 4 + 2] = 0;
+		rdma_log_buf[i * 4 + 3] = 0;
+	
+	}
+	
+	
+}
+
+static ssize_t rdma_log_buf_reset_write(struct file *file, const char __user *buf,
+				 size_t count, loff_t *ppos)
+{
+	reset_rdma_log_buf();
+	return MAX_LOG_ENTRIES;
+}
+
+static const struct file_operations rdma_log_buf_reset_fops = {
+	.write = rdma_log_buf_reset_write,
+};
+
+void init_rdma_debugfs(void)
+{
+	// struct dentry *root = debugfs_create_dir("hermit", NULL);
+
+	
+		
+    struct dentry *dir;
+    static struct debugfs_blob_wrapper blob;
+
+	dir = debugfs_create_dir("rdma_debug", NULL);
+
+	if (!dir)
+		return;
+
+    rdma_log_buf = kvmalloc_array(MAX_LOG_ENTRIES*3llu, sizeof(unsigned long), GFP_KERNEL);
+    if (!rdma_log_buf) {
+        pr_err("Failed to allocate rdma_log_buf\n");
+        return;
+    }
+
+    atomic_set(&rdma_log_cnt, 0);
+
+    
+    debugfs_create_atomic_t("log_cnt", 0666, dir, &rdma_log_cnt);
+
+    blob.data = (void *) rdma_log_buf;
+    blob.size = MAX_LOG_ENTRIES * sizeof(unsigned long) * 3llu; // 3 entries per log: local_addr, rem_addr, read_write
+    debugfs_create_blob("log_entries", 0666, dir, &blob);
+
+	debugfs_create_file("rdma_log_reset", 0666, dir, NULL, &rdma_log_buf_reset_fops);
+
+
+    pr_info("RDMA debugfs entries initialized\n");
+}
+
+void log_rdma_event(unsigned long local_addr, unsigned long rem_addr, unsigned long read_write)
+{
+    size_t idx = atomic_inc_return(&rdma_log_cnt) - 1;
+    if (idx < MAX_LOG_ENTRIES){
+        rdma_log_buf[3*idx] = local_addr;
+		rdma_log_buf[3*idx + 1] = rem_addr;
+		rdma_log_buf[3*idx + 2] = read_write;
+	}
+}
+
 
 /**
  * Wait for the finish of ALL the outstanding rdma_request
@@ -188,6 +276,24 @@ int fs_build_rdma_wr(struct rdma_session_context *rdma_session,
 	rdma_req->rdma_wr.remote_addr =
 		remote_chunk_ptr->remote_addr + offset_within_chunk;
 	rdma_req->rdma_wr.rkey = remote_chunk_ptr->remote_rkey;
+	
+	unsigned long loc_addr = (unsigned long) rdma_req->dma_addr;
+	unsigned long rem_addr = (unsigned long)rdma_req->rdma_wr.remote_addr;
+	unsigned int read_write = (unsigned int) rdma_req->rdma_wr.wr.opcode;
+	log_rdma_event(loc_addr, rem_addr, read_write);
+
+	// struct rdma_log_entry entry;
+	// entry.ts_nsec = ktime_get_ns();
+	// entry.remote_addr = remote_chunk_ptr->remote_addr + offset_within_chunk;
+	// entry.local_page = (uint64_t)page_to_pfn(page) << PAGE_SHIFT;
+	// entry.opcode = (type == QP_STORE) ? 1 : 0;
+
+	// relay_write(rdma_chan, &entry, sizeof(entry));
+
+	// pr_err("Remote write: base=0x%llx, offset=0x%zx, rkey=0x%x\n",
+	// 	remote_chunk_ptr->remote_addr,
+	// 	offset_within_chunk,
+	// 	remote_chunk_ptr->remote_rkey);
 
 // debug
 #ifdef DEBUG_MODE_BRIEF
@@ -459,6 +565,10 @@ void rswap_deregister_frontswap(void)
 int rswap_client_init(char *_server_ip, int _server_port, int _mem_size)
 {
 	int ret = 0;
+	pr_info("initial debug\n");
+	printk(" initial debug\n");
+	// init_rswap_logging();
+	init_rdma_debugfs();
 	printk(KERN_INFO "%s, start \n", __func__);
 
 	// online cores decide the parallelism. e.g. number of QP, CP etc.

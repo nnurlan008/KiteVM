@@ -365,12 +365,19 @@ struct page *hermit_lookup_swap_cache(swp_entry_t entry,
 				      struct vm_area_struct *vma,
 				      unsigned long addr)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct page *page;
 	struct swap_info_struct *si;
 
 	si = get_swap_device(entry);
-	if (!si)
+	if (!si){
 		return NULL;
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_lookup_swap_cache, (uint64_t)(ftt_end - ftt_start));
+		}
+	}
 	page = find_get_page(swap_address_space(entry), swp_offset(entry));
 	put_swap_device(si);
 
@@ -384,8 +391,13 @@ struct page *hermit_lookup_swap_cache(swp_entry_t entry,
 		 * At the moment, we don't support PG_readahead for anon THP
 		 * so let's bail out rather than confusing the readahead stat.
 		 */
-		if (unlikely(PageTransCompound(page)))
+		if (unlikely(PageTransCompound(page))){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_lookup_swap_cache, (uint64_t)(ftt_end - ftt_start));
+			}
 			return page;
+		}
 
 		readahead = TestClearPageReadahead(page);
 		// vma_readahead stats
@@ -409,6 +421,12 @@ struct page *hermit_lookup_swap_cache(swp_entry_t entry,
 				atomic_inc(&swapin_readahead_hits);
 		}
 	}
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_lookup_swap_cache, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return page;
 }
 
@@ -457,19 +475,30 @@ __read_swap_cache_speculative(swp_entry_t entry, gfp_t gfp_mask,
 			      bool *new_page_allocated, int *cpu,
 			      int *adc_pf_bits, uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	// struct swap_info_struct *si;
 	struct page *page = NULL, *new_page = NULL;
 	void *shadow = NULL;
 
 	*new_page_allocated = false;
 
-	if (!cpu)
+	if (!cpu){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT___read_swap_cache_speculative, (uint64_t)(ftt_end - ftt_start));
+		}
 		return NULL;
+	}
 
 	new_page = alloc_page_vma(gfp_mask, vma, addr);
 	if (!new_page) {
 		new_page = find_get_page(swap_address_space(entry),
 				     swp_offset(entry));
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT___read_swap_cache_speculative, (uint64_t)(ftt_end - ftt_start));
+		}
 		return new_page;
 	}
 
@@ -477,6 +506,7 @@ __read_swap_cache_speculative(swp_entry_t entry, gfp_t gfp_mask,
 	// [RMGrid] profiling
 	set_adc_pf_bits(adc_pf_bits, ADC_PF_MAJOR_BIT);
 	adc_profile_counter_inc(ADC_ONDEMAND_SWAPIN);
+	hmt_record_vaddr(current, vma, addr, 9);
 
 	for (;;) {
 		int err;
@@ -553,6 +583,11 @@ __read_swap_cache_speculative(swp_entry_t entry, gfp_t gfp_mask,
 	lru_cache_add(page);
 	*new_page_allocated = true;
 
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT___read_swap_cache_speculative, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return page;
 
 fail_unlock:
@@ -563,6 +598,10 @@ fail_unlock:
 		hermit_poll_read(*cpu, page, true, pf_breakdown);
 	}
 	put_page(page);
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT___read_swap_cache_speculative, (uint64_t)(ftt_end - ftt_start));
+	}
 	return NULL;
 fail_free:
 	if (cpu) {
@@ -570,6 +609,10 @@ fail_free:
 		hermit_poll_read(*cpu, new_page, true, pf_breakdown);
 	}
 	put_page(new_page);
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT___read_swap_cache_speculative, (uint64_t)(ftt_end - ftt_start));
+	}
 	return page;
 }
 
@@ -579,6 +622,8 @@ __read_swap_cache_async_profiling(swp_entry_t entry, gfp_t gfp_mask,
 				  unsigned long addr, bool *new_page_allocated,
 				  int *adc_pf_bits, uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct swap_info_struct *si;
 	struct page *page;
 	void *shadow = NULL;
@@ -594,13 +639,24 @@ __read_swap_cache_async_profiling(swp_entry_t entry, gfp_t gfp_mask,
 		 * that would confuse statistics.
 		 */
 		si = get_swap_device(entry);
-		if (!si)
+		if (!si){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+			}
 			return NULL;
+		}
+
 		page = find_get_page(swap_address_space(entry),
 				     swp_offset(entry));
 		put_swap_device(si);
-		if (page)
+		if (page){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+			}
 			return page;
+		}
 
 		/*
 		 * Just skip read ahead for unused swap slot.
@@ -610,8 +666,13 @@ __read_swap_cache_async_profiling(swp_entry_t entry, gfp_t gfp_mask,
 		 * as SWAP_HAS_CACHE.  That's done in later part of code or
 		 * else swap_off will be aborted if we return NULL.
 		 */
-		if (!__swp_swapcount(entry) && swap_slot_cache_enabled)
+		if (!__swp_swapcount(entry) && swap_slot_cache_enabled){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+			}
 			return NULL;
+		}
 
 		/*
 		 * Get a new page to read into from swap.  Allocate it now,
@@ -619,19 +680,32 @@ __read_swap_cache_async_profiling(swp_entry_t entry, gfp_t gfp_mask,
 		 * cause any racers to loop around until we add it to cache.
 		 */
 		page = alloc_page_vma(gfp_mask, vma, addr);
-		if (!page)
+		if (!page){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+			}
 			return NULL;
+		}
+
 
 		/*
 		 * Swap entry may have been freed since our caller observed it.
 		 */
 		err = swapcache_prepare(entry);
-		if (!err)
+		if (!err){
+			// pr_info("stuck in swapcache_prepare\n");
 			break;
+		}
 
 		put_page(page);
-		if (err != -EEXIST)
+		if (err != -EEXIST){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+			}
 			return NULL;
+		}
 
 		/*
 		 * We might race against __delete_from_swap_cache(), and
@@ -640,7 +714,8 @@ __read_swap_cache_async_profiling(swp_entry_t entry, gfp_t gfp_mask,
 		 * __read_swap_cache_async(), which has set SWAP_HAS_CACHE
 		 * in swap_map, but not yet added its page to swap cache.
 		 */
-		// cond_resched();
+		cond_resched();
+		// pr_info("stuck in for loop\n");
 	}
 	pf_ts += pf_cycles_end();
 	adc_pf_breakdown_end(pf_breakdown, ADC_ALLOC_PAGE, pf_ts);
@@ -674,6 +749,11 @@ __read_swap_cache_async_profiling(swp_entry_t entry, gfp_t gfp_mask,
 	lru_cache_add(page);
 	*new_page_allocated = true;
 
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return page;
 
 // [RMGrid] profiling
@@ -681,6 +761,12 @@ unlock:
 	put_swap_page(page, entry);
 	unlock_page(page);
 	put_page(page);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT___read_swap_cache_async_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+	
 	return NULL;
 }
 
@@ -715,6 +801,7 @@ struct page *read_swap_cache_async(swp_entry_t entry, gfp_t gfp_mask,
 		adc_profile_counter_inc(ADC_ONDEMAND_SWAPIN);
 		if (vma->vm_mm)
 			count_memcg_event_mm(vma->vm_mm, ONDEMAND_SWAPIN);
+		hmt_record_vaddr(current, vma, addr, 7);
 	}
 
 	return retpage;
@@ -847,6 +934,7 @@ struct page *hermit_swap_cluster_readahead(swp_entry_t entry, gfp_t gfp_mask,
 		adc_profile_counter_inc(ADC_ONDEMAND_SWAPIN);
 		if (vma->vm_mm)
 			count_memcg_event_mm(vma->vm_mm, ONDEMAND_SWAPIN);
+		hmt_record_vaddr(current, vma, addr, 8);
 	}
 
 	if (!mask)
@@ -1030,6 +1118,8 @@ hermit_swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 			  struct vm_fault *vmf,
 			  int *adc_pf_bits, uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	// struct blk_plug plug;
 	struct vm_area_struct *vma = vmf->vma;
 	struct pref_request pref_req = {
@@ -1050,6 +1140,13 @@ hermit_swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 
 	adc_pf_breakdown_stt(pf_breakdown, ADC_DEDUP_SWAPIN, pf_cycles_start());
 	// [RMGrid] issue demand page read first
+	unsigned long hmt_addr;
+	if(vmf){
+		hmt_addr = vmf->address;
+	}
+	else{
+		hmt_addr = 0;
+	}
 	fault_page = hmt_spec_io ?
 		     __read_swap_cache_speculative(
 				     fentry, gfp_mask, vma, vmf->address,
@@ -1063,7 +1160,7 @@ hermit_swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 	adc_pf_breakdown_end(pf_breakdown, ADC_DEDUP_SWAPIN, pf_ts);
 	adc_pf_breakdown_stt(pf_breakdown, ADC_PAGE_IO, pf_ts);
 
-	if (cpu == -1 && demand_page_allocated) {
+	if (cpu == -1 && demand_page_allocated) { 
 		cpu = get_cpu();
 		swap_readpage(fault_page, pref_req.ra_info.win == 1);
 		put_cpu();
@@ -1071,7 +1168,10 @@ hermit_swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 		set_adc_pf_bits(adc_pf_bits, ADC_PF_MAJOR_BIT);
 		adc_profile_counter_inc(ADC_ONDEMAND_SWAPIN);
 		// count_memcg_event_mm(vma->vm_mm, ONDEMAND_SWAPIN);
+		hmt_record_vaddr(current, vma, hmt_addr, 5);
 	}
+	
+	// hmt_record_vaddr(current, vma, vmf->address, 1);
 
 	if (pref_req.ra_info.win > 1) {
 		hermit_vma_prefetch(&pref_req, cpu, adc_pf_bits, pf_breakdown);
@@ -1081,6 +1181,12 @@ hermit_swap_vma_readahead(swp_entry_t fentry, gfp_t gfp_mask,
 		// [Hermit] we disabled preemption inside poll_load when polling
 		hermit_poll_read(cpu, fault_page, true, pf_breakdown);
 	adc_pf_breakdown_end(pf_breakdown, ADC_PAGE_IO, pf_cycles_end());
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_swapin_readahead, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return fault_page;
 }
 
@@ -1155,6 +1261,13 @@ int hermit_vma_prefetch(struct pref_request *pref_req, int cpu,
 			continue;
 		pf_ts = get_cycles_start();
 		adc_pf_breakdown_stt(pf_breakdown, ADC_RD_CACHE_ASYNC, pf_ts);
+		unsigned long hmt_addr;
+		if(pref_req){
+			hmt_addr = pref_req->faddr;
+		}
+		else{
+			hmt_addr = 0;
+		}
 		page = __read_swap_cache_async_profiling(
 			entry, pref_req->gfp_mask, vma, pref_req->faddr,
 			&page_allocated, adc_pf_bits, pf_breakdown);
@@ -1170,6 +1283,7 @@ int hermit_vma_prefetch(struct pref_request *pref_req, int cpu,
 			// [RMGrid] profiling
 			adc_profile_counter_inc(ADC_PREFETCH_SWAPIN);
 			nr_prefed++;
+			hmt_record_vaddr(current, vma, hmt_addr, 3);
 		}
 		put_page(page);
 	}

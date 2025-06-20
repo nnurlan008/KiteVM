@@ -1,0 +1,95 @@
+; ----------------------------------------------------------------------------------
+; Local memory of 100%, -20% remote memory
+RunTime		3:36.52              (≈216 seconds)	Good length — reflects memory pressure
+Throughput	236924.15583923276   ops/sec	High throughput
+Reads		~25000374		Balanced workload
+Updates		~24999626		1:1 read/write ratio
+
+		#   Avg	   95th	  99th	 Comment
+READ		47.0μs	 63μs	 96μs	Good for in-memory reads
+WRITE		48.0μs	 69μs	 117μs	Slightly higher due to memory alloc
+Max Latency	Up to   ~ μs
+
+
+
+
+
+
+
+
+
+; ----------------------------------------------------------------------------------
+; Local memory of 120%, -20% remote memory
+RunTime		3:25.00              (≈205 seconds)	Good length — reflects memory pressure
+Throughput	251828.27326389588   ops/sec	High throughput
+Reads		~25005873		Balanced workload
+Updates		~24994127		1:1 read/write ratio
+
+		#   Avg	   95th	  99th	 Comment
+READ		44.0μs	 54μs	 67μs	Good for in-memory reads
+WRITE		45.7μs	 57μs	 70μs	Slightly higher due to memory alloc
+Max Latency	Up to   ~ μs
+On-demand Swap-ins: 231
+Prefetch Swap-ins:  25
+Hits on Prefetch:   37
+
+; ----------------------------------------------------------------------------------
+; Local memory of 75%, 25% remote memory
+RunTime		3:41.69              (≈221 seconds)	Good length — reflects memory pressure
+Throughput	232427.3315947769    ops/sec	High throughput
+Reads		~24995512		Balanced workload
+Updates		~25004487		1:1 read/write ratio
+
+		#   Avg	   95th	  99th	 Comment
+READ		47.1μs	 68μs	 96μs	Good for in-memory reads
+WRITE		50.0μs	 78μs	 106μs	Slightly higher due to memory alloc
+Max Latency	Up to   ~ μs
+On-demand Swap-ins: 3966795
+Prefetch Swap-ins:  2904
+Hits on Prefetch:   2576
+
+; ----------------------------------------------------------------------------------
+; Local memory of 50%, 50% remote memory
+RunTime		4:19.47              (≈259 seconds)	Good length — reflects memory pressure
+Throughput	197608.15094101      ops/sec	High throughput
+Reads		~25001645		Balanced workload
+Updates		~24998354		1:1 read/write ratio
+
+		#   Avg	   95th	  99th	 Comment
+READ		53.0μs	 80μs	 107μs	Good for in-memory reads
+WRITE		63.5μs	 107μs	 148μs	Slightly higher due to memory alloc
+Max Latency	Up to   ~ μs
+On-demand Swap-ins: 19654003
+Prefetch Swap-ins:  4908
+Hits on Prefetch:   1867
+
+; ----------------------------------------------------------------------------------
+; Local memory of 25%, 75% remote memory
+RunTime		6:07.02              (≈367 seconds)	Good length — reflects memory pressure
+Throughput	138672.79045709324   ops/sec	High throughput
+Reads		~25006649		Balanced workload
+Updates		~24993351		1:1 read/write ratio
+
+		#   Avg	   95th	  99th	 Comment
+READ		54.2μs	 94μs	 125μs	Good for in-memory reads
+WRITE		114.0μs	 269μs	 513μs	Slightly higher due to memory alloc
+Max Latency	Up to   ~ μs
+On-demand Swap-ins: 56768402
+Prefetch Swap-ins:  33769
+Hits on Prefetch:   15663
+
+; ----------------------------------------------------------------------------------
+; Local memory of 12%, 88% remote memory
+RunTime		9:26.76              (≈566 seconds)	Good length — reflects memory pressure
+Throughput	89229.14937851898    ops/sec	High throughput
+Reads		~24996980		Balanced workload
+Updates		~25003020		1:1 read/write ratio
+
+		#   Avg	   95th	  99th	 Comment
+READ		58.8μs	 95μs	 131μs	Good for in-memory reads
+WRITE		204.6μs	 453μs	 1845μs	Slightly higher due to memory alloc
+Max Latency	Up to   ~ μs
+On-demand Swap-ins: 91019936
+Prefetch Swap-ins:  83328
+Hits on Prefetch:   17976
+

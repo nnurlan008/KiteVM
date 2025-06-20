@@ -28,6 +28,7 @@
 
 // [RMGrid]
 #include <linux/swap_stats.h>
+#include <linux/hermit.h>
 
 void end_swap_bio_write(struct bio *bio)
 {
@@ -629,6 +630,8 @@ inline int hermit_issue_read(struct page *page, swp_entry_t entry)
 inline int hermit_poll_read(int cpu, struct page *page, bool unlock,
 			    uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	BUG_ON(!page);
 	adc_pf_breakdown_stt(pf_breakdown, ADC_POLL_LOAD, pf_cycles_start());
 	if (!PageLocked(page))
@@ -639,5 +642,11 @@ inline int hermit_poll_read(int cpu, struct page *page, bool unlock,
 		unlock_page(page);
 done:
 	adc_pf_breakdown_end(pf_breakdown, ADC_POLL_LOAD, pf_cycles_end());
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_poll_read, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return 0;
 }

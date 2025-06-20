@@ -74,6 +74,7 @@
 // [Hermit]
 #include <linux/hermit_utils.h>
 #include <linux/hermit.h>
+#include <linux/swap_stats.h>
 
 struct cgroup_subsys memory_cgrp_subsys __read_mostly;
 EXPORT_SYMBOL(memory_cgrp_subsys);
@@ -928,10 +929,17 @@ static __always_inline struct mem_cgroup *active_memcg(void)
  */
 struct mem_cgroup *get_mem_cgroup_from_mm(struct mm_struct *mm)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct mem_cgroup *memcg;
 
-	if (mem_cgroup_disabled())
+	if (mem_cgroup_disabled()){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_get_mem_cgroup_from_mm, (uint64_t)(ftt_end - ftt_start));
+		}
 		return NULL;
+	}
 
 	/*
 	 * Page cache insertions can happen without an
@@ -947,11 +955,20 @@ struct mem_cgroup *get_mem_cgroup_from_mm(struct mm_struct *mm)
 		if (unlikely(memcg)) {
 			/* remote memcg must hold a ref */
 			css_get(&memcg->css);
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_get_mem_cgroup_from_mm, (uint64_t)(ftt_end - ftt_start));
+			}
 			return memcg;
 		}
 		mm = current->mm;
-		if (unlikely(!mm))
+		if (unlikely(!mm)){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_get_mem_cgroup_from_mm, (uint64_t)(ftt_end - ftt_start));
+			}
 			return root_mem_cgroup;
+		}
 	}
 
 	rcu_read_lock();
@@ -961,6 +978,12 @@ struct mem_cgroup *get_mem_cgroup_from_mm(struct mm_struct *mm)
 			memcg = root_mem_cgroup;
 	} while (!css_tryget(&memcg->css));
 	rcu_read_unlock();
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_get_mem_cgroup_from_mm, (uint64_t)(ftt_end - ftt_start));
+	}
+	
 	return memcg;
 }
 EXPORT_SYMBOL(get_mem_cgroup_from_mm);
@@ -2588,6 +2611,8 @@ static int try_charge_memcg_profiling(struct mem_cgroup *memcg, gfp_t gfp_mask,
 				      unsigned int nr_pages, int *adc_pf_bits,
 				      uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	unsigned int batch = max(MEMCG_CHARGE_BATCH, nr_pages);
 	int nr_retries = MAX_RECLAIM_RETRIES;
 	struct mem_cgroup *mem_over_limit;
@@ -2599,8 +2624,13 @@ static int try_charge_memcg_profiling(struct mem_cgroup *memcg, gfp_t gfp_mask,
 	unsigned long pflags;
 
 retry:
-	if (consume_stock(memcg, nr_pages))
+	if (consume_stock(memcg, nr_pages)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_try_charge_memcg_profiling, (uint64_t)(ftt_end - ftt_start));
+		}
 		return 0;
+	}
 
 	if (!do_memsw_account() ||
 	    page_counter_try_charge(&memcg->memsw, batch, &counter)) {
@@ -2723,8 +2753,13 @@ retry:
 		goto nomem;
 	}
 nomem:
-	if (!(gfp_mask & __GFP_NOFAIL))
+	if (!(gfp_mask & __GFP_NOFAIL)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_try_charge_memcg_profiling, (uint64_t)(ftt_end - ftt_start));
+		}
 		return -ENOMEM;
+	}
 force:
 	/*
 	 * The allocation either can't fail or will lead to more memory
@@ -2735,6 +2770,11 @@ force:
 	atomic64_add(nr_pages, &memcg->total_pg_charge);
 	if (do_memsw_account())
 		page_counter_charge(&memcg->memsw, nr_pages);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_try_charge_memcg_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
 
 	return 0;
 
@@ -2787,6 +2827,11 @@ done_restock:
 		}
 	} while ((memcg = parent_mem_cgroup(memcg)));
 
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_try_charge_memcg_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return 0;
 }
 
@@ -2832,6 +2877,8 @@ static void cancel_charge(struct mem_cgroup *memcg, unsigned int nr_pages)
 
 static void commit_charge(struct page *page, struct mem_cgroup *memcg)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	VM_BUG_ON_PAGE(page_memcg(page), page);
 	/*
 	 * Any of the following ensures page's memcg stability:
@@ -2842,6 +2889,11 @@ static void commit_charge(struct page *page, struct mem_cgroup *memcg)
 	 * - exclusive reference
 	 */
 	page->memcg_data = (unsigned long)memcg;
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_commit_charge, (uint64_t)(ftt_end - ftt_start));
+	}
 }
 
 static struct mem_cgroup *get_mem_cgroup_from_objcg(struct obj_cgroup *objcg)
@@ -3476,6 +3528,8 @@ unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
 					    gfp_t gfp_mask,
 					    unsigned long *total_scanned)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	unsigned long nr_reclaimed = 0;
 	struct mem_cgroup_per_node *mz, *next_mz = NULL;
 	unsigned long reclaimed;
@@ -3484,8 +3538,13 @@ unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
 	unsigned long excess;
 	unsigned long nr_scanned;
 
-	if (order > 0)
+	if (order > 0){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_mem_cgroup_soft_limit_reclaim, (uint64_t)(ftt_end - ftt_start));
+		}
 		return 0;
+	}
 
 	mctz = soft_limit_tree_node(pgdat->node_id);
 
@@ -3494,8 +3553,15 @@ unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
 	 * is empty. Do it lockless to prevent lock bouncing. Races
 	 * are acceptable as soft limit is best effort anyway.
 	 */
-	if (!mctz || RB_EMPTY_ROOT(&mctz->rb_root))
+	if (!mctz || RB_EMPTY_ROOT(&mctz->rb_root)){
+		
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_mem_cgroup_soft_limit_reclaim, (uint64_t)(ftt_end - ftt_start));
+		}
+
 		return 0;
+	}
 
 	/*
 	 * This loop can run a while, specially if mem_cgroup's continuously
@@ -3552,6 +3618,12 @@ unsigned long mem_cgroup_soft_limit_reclaim(pg_data_t *pgdat, int order,
 	} while (!nr_reclaimed);
 	if (next_mz)
 		css_put(&next_mz->memcg->css);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_mem_cgroup_soft_limit_reclaim, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return nr_reclaimed;
 }
 
@@ -6789,6 +6861,8 @@ static int __mem_cgroup_charge_profiling(struct page *page,
 					 int *adc_pf_bits,
 					 uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	unsigned int nr_pages = thp_nr_pages(page);
 	int ret;
 
@@ -6804,6 +6878,12 @@ static int __mem_cgroup_charge_profiling(struct page *page,
 	mem_cgroup_charge_statistics(memcg, page, nr_pages);
 	memcg_check_events(memcg, page);
 	local_irq_enable();
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT___mem_cgroup_charge_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+	
 out:
 	return ret;
 }
@@ -6964,14 +7044,21 @@ int hermit_mem_cgroup_swapin_charge_page(struct page *page,
 					 int *adc_pf_bits,
 					 uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct mem_cgroup *memcg;
 	// unsigned short id;
 	int ret;
 	// [RMGrid] profiling
 	uint64_t pf_ts;
 
-	if (mem_cgroup_disabled())
+	if (mem_cgroup_disabled()){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mem_cgroup_swapin_charge_page, (uint64_t)(ftt_end - ftt_start));
+		}
 		return 0;
+	}
 
 	pf_ts =  get_cycles_start();
 
@@ -6987,6 +7074,12 @@ int hermit_mem_cgroup_swapin_charge_page(struct page *page,
 	pf_ts = get_cycles_end() - pf_ts;
 	adc_pf_breakdown_end(pf_breakdown, ADC_CGROUP_ACCOUNT, pf_ts);
 	accum_adc_time_stat(ADC_SWAP_OUT_DUR, pf_ts);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_mem_cgroup_swapin_charge_page, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 }
 
@@ -7547,25 +7640,54 @@ long mem_cgroup_get_nr_swap_pages(struct mem_cgroup *memcg)
 
 bool mem_cgroup_swap_full(struct page *page)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct mem_cgroup *memcg;
 
 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 
-	if (vm_swap_full())
+	if (vm_swap_full()){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_mem_cgroup_swap_full, (uint64_t)(ftt_end - ftt_start));
+		}
 		return true;
-	if (cgroup_memory_noswap || !cgroup_subsys_on_dfl(memory_cgrp_subsys))
+	}
+
+	if (cgroup_memory_noswap || !cgroup_subsys_on_dfl(memory_cgrp_subsys)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_mem_cgroup_swap_full, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 
 	memcg = page_memcg(page);
-	if (!memcg)
+	if (!memcg){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_mem_cgroup_swap_full, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 
 	for (; memcg != root_mem_cgroup; memcg = parent_mem_cgroup(memcg)) {
 		unsigned long usage = page_counter_read(&memcg->swap);
 
 		if (usage * 2 >= READ_ONCE(memcg->swap.high) ||
-		    usage * 2 >= READ_ONCE(memcg->swap.max))
+		    usage * 2 >= READ_ONCE(memcg->swap.max)){
+
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_mem_cgroup_swap_full, (uint64_t)(ftt_end - ftt_start));
+			}
 			return true;
+			}
+	}
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_mem_cgroup_swap_full, (uint64_t)(ftt_end - ftt_start));
 	}
 
 	return false;

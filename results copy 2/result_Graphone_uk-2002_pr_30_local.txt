@@ -1,0 +1,26 @@
+Nurlan@node2:~$ sudo ./run_limited_local_cache.sh 11
+Setting up cgroup with memory limit: 1 GB (12%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v /users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10"
+2:19.68
+Setting up cgroup with memory limit: 2 GB (25%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v /users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10"
+2:16.17
+Setting up cgroup with memory limit: 5 GB (50%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v /users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10"
+1:49.36
+Setting up cgroup with memory limit: 8 GB (75%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v /users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10"
+1:41.19
+Setting up cgroup with memory limit: 12 GB (110%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v /users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/uk-2002/clean/ -j 0 -v 18520486 -d 1 -z 10"
+1:30.21

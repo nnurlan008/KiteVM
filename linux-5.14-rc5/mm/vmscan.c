@@ -1923,6 +1923,19 @@ shrink_page_list_inner(struct list_head *page_list, struct pglist_data *pgdat,
 			cond_resched();
 
 		page = lru_to_page(page_list);
+		
+		struct vpage *vpage1 = page2vpage(cthd, page);
+		struct vm_area_struct *hmt_vma;
+		unsigned long hmt_addr;
+		if(vpage1){
+			hmt_vma = vpage1->vma;
+			hmt_addr = vpage1->address;
+		}
+		else{
+			hmt_vma = NULL;
+			hmt_addr = 0;
+		}
+
 		list_del(&page->lru);
 
 		if (!trylock_page(page))
@@ -2048,6 +2061,7 @@ shrink_page_list_inner(struct list_head *page_list, struct pglist_data *pgdat,
 		}
 
 		vpage = page2vpage(cthd, page);
+		
 		if (!ignore_references) {
 			pf_ts = pf_cycles_start();
 			references = page_check_references(vpage, page, sc);
@@ -2120,6 +2134,8 @@ shrink_page_list_inner(struct list_head *page_list, struct pglist_data *pgdat,
 				goto keep_locked;
 		}
 
+		hmt_record_vaddr(current, hmt_vma, hmt_addr, 6);
+		
 		/*
 		 * THP may get split above, need minus tail pages and update
 		 * nr_pages to avoid accounting tail pages twice.
@@ -4629,6 +4645,8 @@ static void shrink_zones_profiling(struct zonelist *zonelist,
 				   struct task_struct *cthd, int *adc_pf_bits,
 				   uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct zoneref *z;
 	struct zone *zone;
 	unsigned long nr_soft_reclaimed;
@@ -4711,6 +4729,12 @@ static void shrink_zones_profiling(struct zonelist *zonelist,
 	 * promoted it to __GFP_HIGHMEM.
 	 */
 	sc->gfp_mask = orig_mask;
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_shrink_zones_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 }
 
 static inline void shrink_zones(struct zonelist *zonelist, struct scan_control *sc)
@@ -4752,6 +4776,8 @@ static unsigned long do_try_to_free_pages_profiling(struct zonelist *zonelist,
 						    int *adc_pf_bits,
 						    uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	int initial_priority = sc->priority;
 	pg_data_t *last_pgdat;
 	struct zoneref *z;
@@ -4803,12 +4829,22 @@ retry:
 
 	delayacct_freepages_end();
 
-	if (sc->nr_reclaimed)
+	if (sc->nr_reclaimed){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_try_to_free_pages_profiling, (uint64_t)(ftt_end - ftt_start));
+		}
 		return sc->nr_reclaimed;
+	}
 
 	/* Aborted reclaim to try compaction? don't OOM, then */
-	if (sc->compaction_ready)
+	if (sc->compaction_ready){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_try_to_free_pages_profiling, (uint64_t)(ftt_end - ftt_start));
+		}
 		return 1;
+	}
 
 	/*
 	 * We make inactive:active ratio decisions based on the node's
@@ -4834,7 +4870,10 @@ retry:
 		sc->memcg_low_skipped = 0;
 		goto retry;
 	}
-
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_try_to_free_pages_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
 	return 0;
 }
 
@@ -5068,6 +5107,8 @@ hermit_try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
 				    bool may_swap, struct task_struct *cthd,
 				    int *adc_pf_bits, uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	unsigned long nr_reclaimed;
 	unsigned int noreclaim_flag;
 	struct scan_control sc = {
@@ -5100,6 +5141,11 @@ hermit_try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
 	memalloc_noreclaim_restore(noreclaim_flag);
 	trace_mm_vmscan_memcg_reclaim_end(nr_reclaimed);
 	set_task_reclaim_state(current, NULL);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_try_to_free_mem_cgroup_pages, (uint64_t)(ftt_end - ftt_start));
+	}
 
 	return nr_reclaimed;
 }

@@ -260,7 +260,7 @@ static unsigned long hermit_reclaim_high(struct task_struct *cthd,
 		swout_dur += pf_cycles_end();
 		adc_pf_breakdown_end(pf_breakdown, ADC_TOTAL_PF, swout_dur);
 		accum_adc_pf_breakdown(pf_breakdown, ADC_HMT_OUT_SPF);
-		if (master)
+		if (master && sc)
 			accum_swout_dur(sc, swout_dur, nr_reclaimed);
 	} while ((memcg = parent_mem_cgroup(memcg)) &&
 		 !mem_cgroup_is_root(memcg));

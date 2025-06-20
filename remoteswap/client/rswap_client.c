@@ -30,6 +30,8 @@ module_param_named(rmsize, remote_mem_size, int, 0644);
 int __init rswap_cpu_init(void)
 {
 	int ret = 0;
+	printk(" initial\n");
+	pr_info("initial debug\n");
 	ret = rswap_client_init(server_ip, server_port, remote_mem_size);
 	if (unlikely(ret)) {
 		printk(KERN_ERR "%s, rswap_rdma_client_init failed.\n",

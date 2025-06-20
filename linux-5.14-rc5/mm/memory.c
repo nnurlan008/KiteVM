@@ -3579,6 +3579,8 @@ static inline vm_fault_t hermit_swapin_bypass_swapcache(struct page **pagep,
 							int *adc_pf_bits,
 							uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct vm_area_struct *vma = vmf->vma;
 	struct page *page;
 
@@ -3597,6 +3599,14 @@ static inline vm_fault_t hermit_swapin_bypass_swapcache(struct page **pagep,
 
 	*cpu = -1;
 
+	unsigned long hmt_addr;
+	if(vmf){
+		hmt_addr = vmf->address;
+	}
+	else{
+		hmt_addr = 0;
+	}
+
 	// adc_pf_breakdown_stt(pf_breakdown, ADC_ALLOC_PAGE, pf_cycles_start());
 	*pagep = alloc_page_vma(GFP_HIGHUSER_MOVABLE, vma, vmf->address);
 	page = *pagep;
@@ -3604,6 +3614,12 @@ static inline vm_fault_t hermit_swapin_bypass_swapcache(struct page **pagep,
 	if (!page) {
 		adc_pf_breakdown_end(pf_breakdown, ADC_PAGE_IO,
 				     pf_cycles_end());
+		
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_swapin_bypass_swapcache, (uint64_t)(ftt_end - ftt_start));
+		}
+
 		return 0;
 	}
 
@@ -3629,6 +3645,8 @@ static inline vm_fault_t hermit_swapin_bypass_swapcache(struct page **pagep,
 	// [RMGrid] profiling
 	set_adc_pf_bits(adc_pf_bits, ADC_PF_MAJOR_BIT);
 	adc_profile_counter_inc(ADC_ONDEMAND_SWAPIN);
+
+	hmt_record_vaddr(current, vma, hmt_addr, 4); 
 	// count_memcg_event_mm(vma->vm_mm,
 	// 		     ONDEMAND_SWAPIN);
 
@@ -3643,6 +3661,12 @@ static inline vm_fault_t hermit_swapin_bypass_swapcache(struct page **pagep,
 				     pf_cycles_end());
 	}
 	lru_cache_add(page);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_swapin_bypass_swapcache, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return 0;
 oom:
 	if (spec_io) {
@@ -3653,6 +3677,12 @@ oom:
 		*cpu = -1;
 	}
 	adc_pf_breakdown_end(pf_breakdown, ADC_PAGE_IO, pf_cycles_end());
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_swapin_bypass_swapcache, (uint64_t)(ftt_end - ftt_start));
+	}
+	
 	return VM_FAULT_OOM;
 }
 
@@ -3667,6 +3697,8 @@ oom:
 vm_fault_t do_swap_page_profiling(struct vm_fault *vmf, int *adc_pf_bits,
 				  uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct vm_area_struct *vma = vmf->vma;
 	struct page *page = NULL, *swapcache;
 	struct swap_info_struct *si = NULL;
@@ -3714,6 +3746,15 @@ vm_fault_t do_swap_page_profiling(struct vm_fault *vmf, int *adc_pf_bits,
 
 	set_adc_pf_bits(adc_pf_bits, ADC_PF_SWAP_BIT);
 	delayacct_set_flag(current, DELAYACCT_PF_SWAPIN);
+	
+	unsigned long hmt_addr;
+	if(vmf){
+		hmt_addr = vmf->address;
+	}
+	else{
+		hmt_addr = 0;
+	}
+
 	page = lookup_swap_cache(entry, vma, vmf->address);
 	swapcache = page;
 
@@ -3729,6 +3770,8 @@ vm_fault_t do_swap_page_profiling(struct vm_fault *vmf, int *adc_pf_bits,
 				count_memcg_event_mm(vma->vm_mm,
 						     HITON_SWAP_CACHE);
 		}
+		hmt_record_vaddr(current, vma, hmt_addr, 1);
+		// hmt_record_vaddr(current, vma, entry.val, 1);
 	}
 	if (!page) {
 		// if (data_race(si->flags & SWP_SYNCHRONOUS_IO) &&
@@ -3955,6 +3998,12 @@ out:
 		adc_pf_breakdown_end(pf_breakdown, ADC_PAGE_IO,
 				     pf_cycles_end());
 	}
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_swap_page_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 out_nomap:
 	pte_unmap_unlock(vmf->pte, vmf->ptl);
@@ -3982,6 +4031,12 @@ out_release:
 	}
 	if (si)
 		put_swap_device(si);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_swap_page_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 // [RMGrid] profiling
 out_profiling:
@@ -3992,6 +4047,12 @@ out_profiling:
 		put_swap_device(si);
 
 	BUG_ON(cpu != -1);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_swap_page_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 }
 
@@ -4007,14 +4068,21 @@ inline vm_fault_t do_swap_page(struct vm_fault *vmf)
  */
 static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct vm_area_struct *vma = vmf->vma;
 	struct page *page;
 	vm_fault_t ret = 0;
 	pte_t entry;
 
 	/* File mapping without ->vm_ops ? */
-	if (vma->vm_flags & VM_SHARED)
+	if (vma->vm_flags & VM_SHARED){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+		}
 		return VM_FAULT_SIGBUS;
+	}
 
 	/*
 	 * Use pte_alloc() instead of pte_alloc_map().  We can't run
@@ -4026,12 +4094,22 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 	 *
 	 * Here we only have mmap_read_lock(mm).
 	 */
-	if (pte_alloc(vma->vm_mm, vmf->pmd))
+	if (pte_alloc(vma->vm_mm, vmf->pmd)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+		}
 		return VM_FAULT_OOM;
+	}
 
 	/* See comment in handle_pte_fault() */
-	if (unlikely(pmd_trans_unstable(vmf->pmd)))
+	if (unlikely(pmd_trans_unstable(vmf->pmd))){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+		}
 		return 0;
+	}
 
 	/* Use the zero-page for reads */
 	if (!(vmf->flags & FAULT_FLAG_WRITE) &&
@@ -4050,6 +4128,10 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 		/* Deliver the page fault to userland, check inside PT lock */
 		if (userfaultfd_missing(vma)) {
 			pte_unmap_unlock(vmf->pte, vmf->ptl);
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+			}
 			return handle_userfault(vmf, VM_UFFD_MISSING);
 		}
 		goto setpte;
@@ -4061,6 +4143,8 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 	page = alloc_zeroed_user_highpage_movable(vma, vmf->address);
 	if (!page)
 		goto oom;
+	
+	hmt_record_vaddr(current, vma, vmf->address, 0);
 
 	if (mem_cgroup_charge(page, vma->vm_mm, GFP_KERNEL))
 		goto oom_free_page;
@@ -4093,6 +4177,10 @@ static vm_fault_t do_anonymous_page(struct vm_fault *vmf)
 	if (userfaultfd_missing(vma)) {
 		pte_unmap_unlock(vmf->pte, vmf->ptl);
 		put_page(page);
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+		}
 		return handle_userfault(vmf, VM_UFFD_MISSING);
 	}
 
@@ -4111,6 +4199,10 @@ setpte:
 	update_mmu_cache(vma, vmf->address, vmf->pte);
 unlock:
 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+	}
 	return ret;
 release:
 	put_page(page);
@@ -4118,6 +4210,10 @@ release:
 oom_free_page:
 	put_page(page);
 oom:
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_anonymous_page, (uint64_t)(ftt_end - ftt_start));
+	}
 	return VM_FAULT_OOM;
 }
 
@@ -4562,6 +4658,8 @@ static vm_fault_t do_shared_fault(struct vm_fault *vmf)
  */
 static vm_fault_t do_fault(struct vm_fault *vmf)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct vm_area_struct *vma = vmf->vma;
 	struct mm_struct *vm_mm = vma->vm_mm;
 	vm_fault_t ret;
@@ -4606,6 +4704,11 @@ static vm_fault_t do_fault(struct vm_fault *vmf)
 	if (vmf->prealloc_pte) {
 		pte_free(vm_mm, vmf->prealloc_pte);
 		vmf->prealloc_pte = NULL;
+	}
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_fault, (uint64_t)(ftt_end - ftt_start));
 	}
 	return ret;
 }
@@ -4803,6 +4906,7 @@ static vm_fault_t handle_pte_fault_profiling(struct vm_fault *vmf,
 					     int *adc_pf_bits,
 					     uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
 	pte_t entry;
 	// [RMGrid] profiling
 	vm_fault_t ret;
@@ -4865,8 +4969,17 @@ static vm_fault_t handle_pte_fault_profiling(struct vm_fault *vmf,
 		goto not_swap_fault;
 	}
 
-	if (!pte_present(vmf->orig_pte))
-		return do_swap_page_profiling(vmf, adc_pf_bits, pf_breakdown);
+	if (!pte_present(vmf->orig_pte)){
+		
+		vm_fault_t return_val = do_swap_page_profiling(vmf, adc_pf_bits, pf_breakdown);
+
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_handle_pte_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+		}
+
+		return return_val;
+	}
 
 	if (pte_protnone(vmf->orig_pte) && vma_is_accessible(vmf->vma)) {
 		ret = do_numa_page(vmf);
@@ -4909,12 +5022,24 @@ unlock:
 	adc_pf_breakdown_end(pf_breakdown, ADC_LOCK_GET_PTE, pf_ts);
 	adc_pf_breakdown_stt(pf_breakdown, ADC_SET_PAGEMAP_UNLOCK, pf_ts);
 	pte_unmap_unlock(vmf->pte, vmf->ptl);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_handle_pte_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+	
 	return 0;
 // [RMGrid] profiling
 not_swap_fault:
 	pf_ts = pf_cycles_end();
 	adc_pf_breakdown_end(pf_breakdown, ADC_LOCK_GET_PTE, pf_ts);
 	adc_pf_breakdown_stt(pf_breakdown, ADC_SET_PAGEMAP_UNLOCK, pf_ts);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_handle_pte_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 }
 static inline vm_fault_t handle_pte_fault(struct vm_fault *vmf)
@@ -4934,6 +5059,8 @@ static vm_fault_t __handle_mm_fault_profiling(struct vm_area_struct *vma,
 					      int *adc_pf_bits,
 					      uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	struct vm_fault vmf = {
 		.vma = vma,
 		.address = address & PAGE_MASK,
@@ -5030,12 +5157,27 @@ retry_pud:
 		}
 	}
 
-	return handle_pte_fault_profiling(&vmf, adc_pf_bits, pf_breakdown);
+	
+
+	vm_fault_t return_value = handle_pte_fault_profiling(&vmf, adc_pf_bits, pf_breakdown);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT__handle_mm_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
+	return return_value;
 // [RMGrid] profiling
 not_pte_fault:
 	pf_ts = pf_cycles_end();
 	adc_pf_breakdown_end(pf_breakdown, ADC_LOCK_GET_PTE, pf_ts);
 	adc_pf_breakdown_stt(pf_breakdown, ADC_SET_PAGEMAP_UNLOCK, pf_ts);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT__handle_mm_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 }
 
@@ -5065,6 +5207,7 @@ static inline void mm_account_fault(struct pt_regs *regs,
 				    unsigned long address, unsigned int flags,
 				    vm_fault_t ret)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
 	bool major;
 
 	/*
@@ -5078,8 +5221,13 @@ static inline void mm_account_fault(struct pt_regs *regs,
 	 * - Incomplete faults (VM_FAULT_RETRY).  They will only be counted
 	 *   once they're completed.
 	 */
-	if (ret & (VM_FAULT_ERROR | VM_FAULT_RETRY))
+	if (ret & (VM_FAULT_ERROR | VM_FAULT_RETRY)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_mm_account_fault, (uint64_t)(ftt_end - ftt_start));
+		}
 		return;
+	}
 
 	/*
 	 * We define the fault as a major fault when the final successful fault
@@ -5105,6 +5253,11 @@ static inline void mm_account_fault(struct pt_regs *regs,
 		perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MAJ, 1, regs, address);
 	else
 		perf_sw_event(PERF_COUNT_SW_PAGE_FAULTS_MIN, 1, regs, address);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_mm_account_fault, (uint64_t)(ftt_end - ftt_start));
+	}
 }
 
 /*
@@ -5123,6 +5276,8 @@ vm_fault_t handle_mm_fault_profiling(struct vm_area_struct *vma,
 				     struct pt_regs *regs, int *adc_pf_bits,
 				     uint64_t pf_breakdown[])
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	vm_fault_t ret;
 
 	__set_current_state(TASK_RUNNING);
@@ -5140,6 +5295,12 @@ vm_fault_t handle_mm_fault_profiling(struct vm_area_struct *vma,
 		adc_pf_breakdown_end(pf_breakdown, ADC_LOCK_GET_PTE, pf_ts);
 		adc_pf_breakdown_stt(pf_breakdown, ADC_SET_PAGEMAP_UNLOCK,
 				     pf_ts);
+
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_handle_mm_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+		}
+
 		return VM_FAULT_SIGSEGV;
 	}
 
@@ -5175,6 +5336,11 @@ vm_fault_t handle_mm_fault_profiling(struct vm_area_struct *vma,
 	}
 
 	mm_account_fault(regs, address, flags, ret);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_handle_mm_fault_profiling, (uint64_t)(ftt_end - ftt_start));
+	}
 
 	return ret;
 }

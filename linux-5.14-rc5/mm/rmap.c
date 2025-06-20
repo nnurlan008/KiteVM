@@ -1125,6 +1125,7 @@ void page_add_anon_rmap(struct page *page,
 void do_page_add_anon_rmap(struct page *page,
 	struct vm_area_struct *vma, unsigned long address, int flags)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
 	bool compound = flags & RMAP_COMPOUND;
 	bool first;
 
@@ -1158,6 +1159,12 @@ void do_page_add_anon_rmap(struct page *page,
 
 	if (unlikely(PageKsm(page))) {
 		unlock_page_memcg(page);
+
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_do_page_add_anon_rmap, (uint64_t)(ftt_end - ftt_start));
+		}
+		
 		return;
 	}
 
@@ -1167,6 +1174,11 @@ void do_page_add_anon_rmap(struct page *page,
 				flags & RMAP_EXCLUSIVE);
 	else
 		__page_check_anon_rmap(page, vma, address);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_do_page_add_anon_rmap, (uint64_t)(ftt_end - ftt_start));
+	}
 
 	hmt_set_page_vaddr(page, address);
 }

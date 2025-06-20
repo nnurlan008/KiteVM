@@ -37,6 +37,10 @@
 #include "constants.h"
 #include "utils.h"
 
+static struct dentry *file;
+static char *buf;
+#define BUF_SIZE 4096
+
 // for the qp. Find the max number without warning.
 #define RDMA_SEND_QUEUE_DEPTH 1024
 #define RDMA_RECV_QUEUE_DEPTH 64
@@ -84,11 +88,24 @@ enum rdma_queue_state {
  */
 enum chunk_mapping_state { EMPTY, MAPPED };
 
+#define MAX_LOG_ENTRIES 10000000llu
+extern unsigned long *rdma_log_buf;
+extern atomic_t rdma_log_cnt;
+
+static struct rchan *rdma_chan;
+
 struct remote_chunk {
 	uint32_t remote_rkey;
 	uint64_t remote_addr;
 	uint64_t mapped_size;
 	enum chunk_mapping_state chunk_state;
+};
+
+struct rdma_log_entry {
+    uint64_t ts_nsec;
+    uint64_t remote_addr;
+    uint64_t local_page;
+    uint32_t opcode;  // 0 = READ, 1 = WRITE
 };
 
 struct chunk_list {

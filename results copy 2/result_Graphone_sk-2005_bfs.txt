@@ -1,0 +1,20 @@
+Setting up cgroup with memory limit: 6 GB (12%)
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/sk-2005/clean/ -j 0 -v 50636154"
+12:03.51
+Setting up cgroup with memory limit: 14 GB (25%)
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/sk-2005/clean/ -j 0 -v 50636154"
+11:58.11
+Setting up cgroup with memory limit: 28 GB (50%)
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/sk-2005/clean/ -j 0 -v 50636154"
+11:38.57
+Setting up cgroup with memory limit: 42 GB (75%)
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/sk-2005/clean/ -j 0 -v 50636154"
+11:31.53
+Setting up cgroup with memory limit: 57 GB (100%)
+Running command under cgroup 'memctl'...
+        Command being timed: "/users/Nurlan/GraphOne/build/graphone32 -i /users/Nurlan/graphs/sk-2005/clean/ -j 0 -v 50636154"
+10:46.29

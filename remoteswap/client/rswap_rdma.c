@@ -98,7 +98,7 @@ int handle_recv_wr(struct rswap_rdma_queue *rdma_queue, struct ib_wc *wc)
 		wake_up_interruptible(&rdma_queue->sem);
 		break;
 	case GOT_CHUNKS:
-
+		pr_err("We got the chunks from remote memory server. \n");
 		bind_remote_memory_chunks(rdma_session);
 
 		rdma_queue->state = RECEIVED_CHUNKS;
@@ -628,7 +628,7 @@ void bind_remote_memory_chunks(struct rdma_session_context *rdma_session)
 {
 	int i;
 	int chunk_num = rdma_session->remote_mem_pool.chunk_num;
-
+	
 	for (i = 0; i < chunk_num; i++) {
 		if (rdma_session->rdma_recv_req.recv_buf->rkey[i]) {
 			rdma_session->remote_mem_pool.chunks[i].remote_rkey =
@@ -641,9 +641,18 @@ void bind_remote_memory_chunks(struct rdma_session_context *rdma_session)
 			rdma_session->remote_mem_pool.chunks[i].chunk_state =
 				MAPPED;
 
-			print_debug(
-				KERN_INFO
-				"Got chunk[%d] : remote_addr : 0x%llx, remote_rkey: 0x%x, mapped_size: 0x%llx \n",
+			// print_debug(
+			// 	KERN_INFO
+			// 	"Got chunk[%d] : remote_addr : 0x%llx, remote_rkey: 0x%x, mapped_size: 0x%llx \n",
+			// 	i,
+			// 	rdma_session->remote_mem_pool.chunks[i]
+			// 		.remote_addr,
+			// 	rdma_session->remote_mem_pool.chunks[i]
+			// 		.remote_rkey,
+			// 	rdma_session->remote_mem_pool.chunks[i]
+			// 		.mapped_size);
+
+			pr_info("Got chunk[%d] : remote_addr : 0x%llx, remote_rkey: 0x%x, mapped_size: 0x%llx \n",
 				i,
 				rdma_session->remote_mem_pool.chunks[i]
 					.remote_addr,

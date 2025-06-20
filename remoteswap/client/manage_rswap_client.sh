@@ -2,7 +2,7 @@
 
 
 ### Macros ###
-mem_server_ip="10.0.0.2"
+mem_server_ip="10.10.1.1"
 mem_server_port="9400"
 
 if [ -z "${HOME}" ]; then
@@ -12,9 +12,9 @@ else
 	home_dir=${HOME}
 fi
 
-swap_file="${home_dir}/swapfile"
+swap_file="${home_dir}/swapfile2"
 # The swap file/partition size should be equal to the whole size of remote memory
-SWAP_PARTITION_SIZE_GB="48"
+SWAP_PARTITION_SIZE_GB="64"
 
 echo " !! Warning, check the parameters below : "
 echo " Assigned memory server IP ${mem_server_ip} Port ${mem_server_port}"
@@ -54,16 +54,19 @@ function close_swap_partition() {
 }
 
 function create_swap_file() {
+	file_size=${SWAP_PARTITION_SIZE_GB}
 	if [[ -e ${swap_file} ]]; then
-		echo "Please confirm the size of swapfile match the expected ${SWAP_PARTITION_SIZE_GB}G"
+		echo "Please confirm the size of swapfile match the expected ${file_size}G"
 		cur_size=$(du -sh ${swap_file} | awk '{print $1;}' | tr -cd '[[:digit:]]')
 		if [[ ${cur_size} -ne "${SWAP_PARTITION_SIZE_GB}" ]]; then
 			echo "Current ${swap_file}: ${cur_size}G NOT equal to expected ${SWAP_PARTITION_SIZE_GB}G"
 			echo "Delete it"
-			sudo rm ${swap_file}
+			sudo swapoff ${swap_file}
+			sudo rm ${swap_file} 
 
 			echo "Create a file, ~/swapfile, with size ${SWAP_PARTITION_SIZE_GB}G as swap device."
-			sudo fallocate -l ${SWAP_PARTITION_SIZE_GB}G ${swap_file}
+			# sudo fallocate -l ${file_size}G ${swap_file}
+			sudo dd if=/dev/zero of=${swap_file} bs=1G count=${file_size} status=progress
 			sudo chmod 600 ${swap_file}
 		else
 			echo "Existing swapfile ${swap_file} , ${cur_size}GB is euqnal or larger than we want, ${SWAP_PARTITION_SIZE_GB}GB. Reuse it."
@@ -71,7 +74,8 @@ function create_swap_file() {
 	else
 		# does not exist, create a swapfile
 		echo "Create a file, ~/swapfile, with size ${SWAP_PARTITION_SIZE_GB}G as swap device."
-		sudo fallocate -l ${SWAP_PARTITION_SIZE_GB}G ${swap_file}
+		# sudo fallocate -l ${file_size}G ${swap_file}
+		sudo dd if=/dev/zero of=${swap_file} bs=1G count=${file_size} status=progress
 		sudo chmod 600 ${swap_file}
 		du -sh ${swap_file}
 	fi

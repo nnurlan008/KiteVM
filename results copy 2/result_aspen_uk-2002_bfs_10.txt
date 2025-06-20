@@ -1,0 +1,25 @@
+Setting up cgroup with memory limit: 1 GB (12%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen"
+0:12.85
+Setting up cgroup with memory limit: 2 GB (25%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen"
+0:09.11
+Setting up cgroup with memory limit: 4 GB (50%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen"
+0:05.53
+Setting up cgroup with memory limit: 6 GB (75%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen"
+0:03.76
+Setting up cgroup with memory limit: 8 GB (110%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 10 -f /users/Nurlan/graphs/uk-2002/uk-2002_aspen"
+0:02.27

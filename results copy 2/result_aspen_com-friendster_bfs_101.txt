@@ -1,0 +1,25 @@
+Setting up cgroup with memory limit: 5 GB (12%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx"
+1:02.55
+Setting up cgroup with memory limit: 11 GB (25%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx"
+0:49.69
+Setting up cgroup with memory limit: 23 GB (50%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx"
+0:30.87
+Setting up cgroup with memory limit: 35 GB (75%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx"
+0:17.56
+Setting up cgroup with memory limit: 51 GB (110%)
+sudo cgexec -g memory:/memctl /usr/bin/time -v numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx 2>&1
+Running command under cgroup 'memctl'...
+        Command being timed: "numactl -i all /users/Nurlan/aspen/code/run_static_algorithm -t BFS -src 1 -s -f /users/Nurlan/graphs/com-Friendster/com-Friendster_aspen.mtx"
+0:10.17

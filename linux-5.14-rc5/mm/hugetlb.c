@@ -44,6 +44,9 @@
 #include "internal.h"
 #include "hugetlb_vmemmap.h"
 
+#include <linux/swap_stats.h>
+#include <linux/hermit.h>
+
 int hugetlb_max_hstate __read_mostly;
 unsigned int default_hstate_idx;
 struct hstate hstates[HUGE_MAX_HSTATE];
@@ -4958,6 +4961,8 @@ u32 hugetlb_fault_mutex_hash(struct address_space *mapping, pgoff_t idx)
 vm_fault_t hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 			unsigned long address, unsigned int flags)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	pte_t *ptep, entry;
 	spinlock_t *ptl;
 	vm_fault_t ret;
@@ -4980,10 +4985,24 @@ vm_fault_t hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 		entry = huge_ptep_get(ptep);
 		if (unlikely(is_hugetlb_entry_migration(entry))) {
 			migration_entry_wait_huge(vma, mm, ptep);
+
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_hugetlb_fault, (uint64_t)(ftt_end - ftt_start));
+			}
+
 			return 0;
-		} else if (unlikely(is_hugetlb_entry_hwpoisoned(entry)))
+		} else if (unlikely(is_hugetlb_entry_hwpoisoned(entry))){
+
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_hugetlb_fault, (uint64_t)(ftt_end - ftt_start));
+			}
+
 			return VM_FAULT_HWPOISON_LARGE |
 				VM_FAULT_SET_HINDEX(hstate_index(h));
+
+		}
 	}
 
 	/*
@@ -5002,6 +5021,12 @@ vm_fault_t hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	ptep = huge_pte_alloc(mm, vma, haddr, huge_page_size(h));
 	if (!ptep) {
 		i_mmap_unlock_read(mapping);
+
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hugetlb_fault, (uint64_t)(ftt_end - ftt_start));
+		}
+
 		return VM_FAULT_OOM;
 	}
 
@@ -5108,6 +5133,12 @@ out_mutex:
 	 */
 	if (need_wait_lock)
 		wait_on_page_locked(page);
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hugetlb_fault, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return ret;
 }
 

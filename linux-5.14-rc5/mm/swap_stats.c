@@ -40,6 +40,49 @@ static const char *adc_time_stat_names[NUM_ADC_TIME_STAT_TYPE] = {
 	"IB MLX4 callback   ", "Poll wait          ", "Poll All           ",
 };
 
+static const char *ftt_function_names[NUM_FTT_BREAKDOWN_TYPE] = {
+	"mem_cgroup_soft_limit_reclaim       ",
+	"shrink_zones_profiling              ",
+	"do_try_to_free_pages_profiling      ",
+	"hermit_try_to_free_mem_cgroup_pages ",
+	"try_charge_memcg_profiling          ",
+	"commit_charge                       ",
+	
+	"get_mem_cgroup_from_mm              ",
+	"__mem_cgroup_charge_profiling       ",
+	"hermit_mem_cgroup_swapin_charge_page",
+	"swap_readpage                       ",
+	"__read_swap_cache_async_profiling   ",
+	"__read_swap_cache_speculative       ",
+	"try_to_free_swap                    ",
+	"mem_cgroup_swap_full                ",
+	"hermit_poll_read                    ",	
+	"hermit_swapin_readahead             ",
+	"hermit_swapin_bypass_swapcache      ",
+	"hermit_ksm_might_need_to_copy       ",
+	"lookup_swap_cache                   ",
+	"get_swap_device                     ",
+	"do_page_add_anon_rmap               ",
+	"do_swap_page_profiling              ",
+	"do_fault                            ",
+	"alloc_zeroed_user_highpage_movable  ",
+	"do_anonymous_page                   ",
+	"handle_pte_fault_profiling          ",
+	"__handle_mm_fault_profiling         ",
+	"mm_account_fault                    ",
+	"mmap_read_unlock                    ",
+	"find_vma                            ",
+	"mmap_read_trylock                   ",
+	"hermit_mm_lock_skippable            ",
+	"hugetlb_fault                       ",
+	"handle_mm_fault_profiling           ",
+
+	"do_user_addr_fault_profiling        ",
+	"handle_page_fault_profiling         ", 
+	
+	"exc_page_fault                      ",
+};
+
 void report_adc_time_stat(void)
 {
 	int type;
@@ -55,6 +98,17 @@ void report_adc_time_stat(void)
 			       (int64_t)atomic_read(&ts->cnt));
 		}
 	}
+}
+
+void report_ftt_records(void)
+{
+	int type;
+	for (type = 0; type < NUM_FTT_BREAKDOWN_TYPE; type++) {
+		uint64_t dur = atomic64_read(&ftt_breakdowns[type]);
+		
+			printk("%s: %lluns\n",
+				ftt_function_names[type], dur);
+		}
 }
 
 void reset_adc_swap_stats(void)
@@ -84,6 +138,8 @@ inline void record_adc_pf_time(int adc_pf_bits, uint64_t dur)
 	}
 	accum_adc_time_stat(type, dur);
 }
+
+atomic64_t ftt_breakdowns[NUM_FTT_BREAKDOWN_TYPE];
 
 // [RMGrid] page fault breakdown profiling
 struct adc_time_stat adc_time_stats[NUM_ADC_TIME_STAT_TYPE];

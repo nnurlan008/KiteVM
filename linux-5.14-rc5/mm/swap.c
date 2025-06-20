@@ -46,6 +46,7 @@
 /* [Hermit] */
 #include <linux/hermit.h>
 #include <linux/swapops.h>
+#include <linux/swap_stats.h>
 
 /* How many pages do we try to swap or page in/out together? */
 int page_cluster;
@@ -1178,34 +1179,78 @@ EXPORT_SYMBOL(put_devmap_managed_page);
 inline bool hermit_mm_lock_skippable(struct mm_struct *mm,
 					    unsigned long address)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
+
 	pgd_t *pgd;
 	p4d_t *p4d;
 	pud_t *pud;
 	pmd_t *pmd;
-	pte_t *pte;
+	pte_t *pte; 
 	swp_entry_t entry;
 
-	if (!hmt_ctl_flag(HMT_SPEC_LOCK))
+	if (!hmt_ctl_flag(HMT_SPEC_LOCK)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	// TODO: avoid hard-coded process names
-	if (!is_specable_thd(current->comm))
+	if (!is_specable_thd(current->comm)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	pgd = pgd_offset(mm, address);
-	if (!pgd_present(*pgd))
+	if (!pgd_present(*pgd)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	p4d = p4d_offset(pgd, address);
-	if (!p4d_present(*p4d))
+	if (!p4d_present(*p4d)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	pud = pud_offset(p4d, address);
-	if (!pud_present(*pud))
+	if (!pud_present(*pud)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	pmd = pmd_offset(pud, address);
 	if (!pmd_present(*pmd))
+	{
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	pte = pte_offset_map(pmd, address);
-	if (pte_none(*pte) || pte_present(*pte))
+	if (pte_none(*pte) || pte_present(*pte)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+		}
 		return false;
+	}
 	entry = pte_to_swp_entry(*pte);
+	
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_hermit_mm_lock_skippable, (uint64_t)(ftt_end - ftt_start));
+	}
+
 	return !non_swap_entry(entry);
 }
 

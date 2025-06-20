@@ -36,6 +36,7 @@
 #include <linux/syscalls.h>
 #include <linux/audit.h>
 #include <linux/printk.h>
+#include <linux/swap_stats.h>
 
 #include <linux/uaccess.h>
 #include <asm/tlb.h>
@@ -666,22 +667,42 @@ static void delete_vma(struct mm_struct *mm, struct vm_area_struct *vma)
  */
 struct vm_area_struct *find_vma(struct mm_struct *mm, unsigned long addr)
 {
+	uint64_t ftt_end, ftt_start = ktime_get_ns();
 	struct vm_area_struct *vma;
 
 	/* check the cache first */
 	vma = vmacache_find(mm, addr);
-	if (likely(vma))
+	if (likely(vma)){
+		ftt_end = ktime_get_ns();
+		if(is_hermit_app(current->comm)){
+			ftt_record_time(FTT_find_vma, (uint64_t)(ftt_end - ftt_start));
+		}
 		return vma;
+	}
 
 	/* trawl the list (there may be multiple mappings in which addr
 	 * resides) */
 	for (vma = mm->mmap; vma; vma = vma->vm_next) {
-		if (vma->vm_start > addr)
+		if (vma->vm_start > addr){
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_find_vma, (uint64_t)(ftt_end - ftt_start));
+			}
 			return NULL;
+		}
 		if (vma->vm_end > addr) {
 			vmacache_update(addr, vma);
+			ftt_end = ktime_get_ns();
+			if(is_hermit_app(current->comm)){
+				ftt_record_time(FTT_find_vma, (uint64_t)(ftt_end - ftt_start));
+			}
 			return vma;
 		}
+	}
+
+	ftt_end = ktime_get_ns();
+	if(is_hermit_app(current->comm)){
+		ftt_record_time(FTT_find_vma, (uint64_t)(ftt_end - ftt_start));
 	}
 
 	return NULL;

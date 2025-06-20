@@ -7,6 +7,7 @@ SYSCALL_DEFINE0(reset_swap_stats)
 {
 	reset_adc_swap_stats();
 	reset_adc_pf_breakdown();
+	reset_ftt_breakdown();
 	return 0;
 }
 
@@ -21,6 +22,7 @@ SYSCALL_DEFINE3(get_swap_stats, int __user *, ondemand_swapin_num, int __user *,
 	report_adc_time_stat();
 	report_adc_counters();
 	report_adc_pf_breakdown(NULL);
+	report_ftt_records();
 
 	dmd_swapin_num = get_adc_counter(ADC_ONDEMAND_SWAPIN);
 	prf_swapin_num = get_adc_counter(ADC_PREFETCH_SWAPIN);
