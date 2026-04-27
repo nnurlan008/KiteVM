@@ -1,5 +1,6 @@
-# Hermit
-Hermit is a new swap system designed for low-latency and high-throughput remote memory. Hermit employs *feedback-directed asynchrony* to reduce remote access latency and improve CPU efficiency for swapping. Please find more details in our NSDI'23 [paper](https://www.usenix.org/conference/nsdi23/presentation/qiao).
+# KiteVM
+KiteVM is adopted from project called Hermit, which is is a new swap system designed for low-latency and high-throughput remote memory. Hermit employs *feedback-directed asynchrony* to reduce remote access latency and improve CPU efficiency for swapping. Please find more details in our NSDI'23 [paper](https://www.usenix.org/conference/nsdi23/presentation/qiao).
+KiteVM improves upon Hermit through the addition of async prefetch from remote memory and solving some errors that were in the original codebase. This work was part of the reserach presentation that got second place in ACM SRC at PACT 2025.
 
 ## Prerequisites
 You will need two servers with RDMA connection to use Hermit. One will serve as the host server and another will serve as the memory server (remote memory pool). Hermit is developed and tested under the following settings:
@@ -81,23 +82,4 @@ We offer a helper script [`tools/hermit/syscaller.py`](linux-5.14-rc5/tools/herm
 * `python3 tools/hermit/syscaller.py stats` will show the page fault handling latencies, breakdowns, and other statistics about swap in `dmesg`. It also prints the prefetching contribution and accuracy in the terminal.
 * `python3 tools/hermit/syscaller.py reset` will reset the stats and latencies numbers in kernel, which enables recollecting stats for the next run.
 
-## Reference
-Please refer to our NSDI'23 paper, [Hermit: Low-Latency, High-Throughput, and Transparent Remote Memory via Feedback-Directed Asynchrony](https://www.usenix.org/conference/nsdi23/presentation/qiao) for more details.
-### Bibtex
-```txt
-@inproceedings {yifan2023hermit,
-author = {Yifan Qiao and Chenxi Wang and Zhenyuan Ruan and Adam Belay and Qingda Lu and Yiying Zhang and Miryung Kim and Guoqing Harry Xu},
-title = {Hermit: {Low-Latency}, {High-Throughput}, and Transparent Remote Memory via {Feedback-Directed} Asynchrony},
-booktitle = {20th USENIX Symposium on Networked Systems Design and Implementation (NSDI 23)},
-year = {2023},
-isbn = {978-1-939133-33-5},
-address = {Boston, MA},
-pages = {181--198},
-url = {https://www.usenix.org/conference/nsdi23/presentation/qiao},
-publisher = {USENIX Association},
-month = apr,
-}
-```
 
-## Contact
-Please contact yifanqiao [at] g [dot] ucla [dot] edu for assistance.# hermit_updated
