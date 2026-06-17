@@ -1,5 +1,5 @@
 # KiteVM
-KiteVM is adopted Hermit, which is a new swap system designed for low-latency and high-throughput remote memory and employs *feedback-directed asynchrony* to reduce remote access latency and improve CPU efficiency for swapping. Please find more details in our NSDI'23 [paper](https://www.usenix.org/conference/nsdi23/presentation/qiao).
+KiteVM has adopted Hermit, which is a new swap system designed for low-latency and high-throughput remote memory and employs *feedback-directed asynchrony* to reduce remote access latency and improve CPU efficiency for swapping. Please find more details in our NSDI'23 [paper](https://www.usenix.org/conference/nsdi23/presentation/qiao).
 
 KiteVM improves upon Hermit by introducing asynchronous prefetching from remote memory and resolving several bugs in the original codebase. This work was part of a research presentation that was awarded Second Place in the ACM Student Research Competition at PACT 2025.
 
